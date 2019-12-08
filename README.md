@@ -4,38 +4,38 @@
 
 - iOS
 
-1. Change development target to 11.0
+    1. Change development target to 11.0
 
-2. Add hot spot configuration capability
+    1. Add hot spot configuration capability
 
 - Android
 
-1. Add wifi permissions
+    - Add wifi permissions
 
-```
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.wonjerry.wifi_connector">
+    ```
+    <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      package="com.wonjerry.wifi_connector">
 
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-</manifest>
+        <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+        <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    </manifest>
 
-```
-
-- Connect to public wifi
-
-```dart
-
-await WifiConnector.connectToWifi(ssid: ssid);
-
-```
+    ```
 
 ## Usage
 
+- Connect to public wifi
+
+    ```dart
+
+    await WifiConnector.connectToWifi(ssid: ssid);
+
+    ```
+
 - Connect to private wifi
 
-```dart
+    ```dart
 
-await WifiConnector.connectToWifi(ssid: ssid, password: password);
+    await WifiConnector.connectToWifi(ssid: ssid, password: password);
 
-```
+    ```
