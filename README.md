@@ -1,4 +1,4 @@
-# wifi_connector_example
+# wifi_connector
 
 ## Prerequisite
 
