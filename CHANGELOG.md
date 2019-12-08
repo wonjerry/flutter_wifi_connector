@@ -5,3 +5,7 @@ Implement connect to wifi method both ios and android
 ## 1.0.1
 
 Fix README, Add license
+
+## 1.0.2
+
+Fix README for readability
