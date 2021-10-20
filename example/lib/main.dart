@@ -10,13 +10,50 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String ssid = '';
-  String password = '';
-  bool isSucceed = false;
+  final _ssidController = TextEditingController(text: 'Check In');
+  final _passwordController = TextEditingController(text: 'dju59ix78');
+  var _isSucceed = false;
 
-  Widget _buildTextInput(String title, void Function(String) onChanged) {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Wifi connector example app'),
+        ),
+        body: ListView(
+          children: [
+            _buildTextInput(
+              'ssid',
+              _ssidController,
+            ),
+            _buildTextInput(
+              'password',
+              _passwordController,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 24.0),
+              child: ElevatedButton(
+                child: Text(
+                  'connect',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: _onConnectPressed,
+              ),
+            ),
+            Text(
+              'Is wifi connected?: $_isSucceed',
+              textAlign: TextAlign.center,
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextInput(String title, TextEditingController controller) {
     return Row(
-      children: <Widget>[
+      children: [
         Padding(
           padding: const EdgeInsets.only(left: 24.0),
           child: Container(width: 80.0, child: Text(title)),
@@ -25,7 +62,10 @@ class _MyAppState extends State<MyApp> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: TextField(
-              onChanged: onChanged,
+              controller: controller,
+              onChanged: (value) => setState(
+                () {},
+              ),
             ),
           ),
         )
@@ -33,45 +73,12 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-          appBar: AppBar(
-            title: const Text('Wifi connector example app'),
-          ),
-          body: Column(
-            children: <Widget>[
-              _buildTextInput('ssid', (ssid) {
-                setState(() {
-                  this.ssid = ssid;
-                });
-              }),
-              _buildTextInput('password', (password) {
-                setState(() {
-                  this.password = password;
-                });
-              }),
-              Padding(
-                padding: const EdgeInsets.only(top: 24.0),
-                child: FlatButton(
-                  color: Colors.blue,
-                  child: Text('확인', style: TextStyle(color: Colors.white),),
-                  onPressed: () async {
-                    final isSucceed = await WifiConnector.connectToWifi(ssid: ssid, password: password);
-                    setState(() {
-                      this.isSucceed = isSucceed;
-                    });
-                  },
-                ),
-              ),
-              Expanded(
-                child: Center(
-                  child: Text('Is wifi connected?: $isSucceed'),
-                ),
-              )
-            ],
-          )),
-    );
+  Future<void> _onConnectPressed() async {
+    final ssid = _ssidController.text;
+    final password = _passwordController.text;
+    setState(() => _isSucceed = false);
+    final isSucceed =
+        await WifiConnector.connectToWifi(ssid: ssid, password: password);
+    setState(() => _isSucceed = isSucceed);
   }
 }
