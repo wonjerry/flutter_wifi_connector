@@ -45,19 +45,24 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     
     // 연결을 시도하고, 성공 여부를 callback으로 전달받는다.
     NEHotspotConfigurationManager.shared.apply(hotspotConfiguration) { (error) in
-      if let error = error {
-        switch error {
-        case NEHotspotConfigurationError.userDenied:
-          result(false)
-          break
-        case NEHotspotConfigurationError.alreadyAssociated:
-          result(true)
-          break
-        default:
-          result(FlutterError(code: call.method, message: error.localizedDescription, details: nil))
+      guard let error = error else {
+        result(true)
+        return
+      }
+      let nsError = error as NSError
+      if let hotspotError = NEHotspotConfigurationError(rawValue: nsError.code) {
+        switch hotspotError {
+          case NEHotspotConfigurationError.userDenied:
+            result(false)
+            break
+          case NEHotspotConfigurationError.alreadyAssociated:
+            result(true)
+            break
+          default:
+            result(FlutterError(code: call.method, message: error.localizedDescription, details: hotspotError.rawValue))
         }
       } else {
-        result(true)
+        result(false)
       }
     }
   }

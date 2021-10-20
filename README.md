@@ -4,10 +4,21 @@
 
 - iOS
 
-    1. Change development target to 11.0
+    - Change development target to 11.0
 
-    1. Add hot spot configuration capability
+    - Add hot spot configuration capability to Runner.entitlements
 
+        ```
+            <key>com.apple.developer.networking.wifi-info</key>
+            <true/>
+        ```
+
+    - Add hot spot configuration capability to Runner.entitlements
+
+        ```
+            <key>com.apple.developer.networking.HotspotConfiguration</key>
+            <true/>
+        ```
 - Android
 
     - Add wifi permissions to `AndroidManifest.xml`
