@@ -7,7 +7,11 @@ class WifiConnector {
 
   static Future<bool> connectToWifi(
       {required String ssid, String? password, bool isWEP = false}) async {
-    return await _channel.invokeMethod(
-        'connectToWifi', {'ssid': ssid, 'password': password, 'isWEP': isWEP});
+    final result = await _channel.invokeMethod<bool>('connectToWifi', {
+      'ssid': ssid,
+      'password': password,
+      'isWEP': isWEP,
+    });
+    return result == true;
   }
 }
