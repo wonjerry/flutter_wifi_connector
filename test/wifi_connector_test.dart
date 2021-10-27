@@ -7,7 +7,7 @@ void main() {
 
   setUp(() {
     channel.setMockMethodCallHandler((MethodCall methodCall) async {
-      return '42';
+      return true;
     });
   });
 
@@ -16,6 +16,9 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    expect(await WifiConnector.platformVersion, '42');
+    expect(
+        await WifiConnector.connectToWifi(
+            ssid: 'myssid', password: 'mypassword'),
+        true);
   });
 }

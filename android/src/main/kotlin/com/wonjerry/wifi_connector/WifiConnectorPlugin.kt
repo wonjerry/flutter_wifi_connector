@@ -61,14 +61,14 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin {
     val wifiConfiguration =
             if (password == null) {
               WifiConfiguration().apply {
-                SSID = wrapWithDoubleQuotes(ssid)
+                SSID = ssid.wrapWithDoubleQuotes()
                 status = WifiConfiguration.Status.CURRENT
                 allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE)
               }
             } else {
               WifiConfiguration().apply {
-                SSID = wrapWithDoubleQuotes(ssid)
-                preSharedKey = wrapWithDoubleQuotes(password)
+                SSID = ssid.wrapWithDoubleQuotes()
+                preSharedKey = password.wrapWithDoubleQuotes()
                 status = WifiConfiguration.Status.CURRENT
                 allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK)
               }
@@ -82,20 +82,18 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin {
       }
 
       // 위에서 생성한 configration을 추가하고 해당 네트워크와 연결한다.
-      addNetwork(wifiConfiguration)
-      configuredNetworks.find { network ->
-        network.SSID == wrapWithDoubleQuotes(ssid)
-      }?.let { network ->
-        disconnect()
-        enableNetwork(network.networkId, true)
-        reconnect()
-        result.success(true)
-      } ?: let {
+      var networkId = addNetwork(wifiConfiguration)
+      if (networkId == null) {
         result.success(false)
+        return;
       }
+      disconnect()
+      enableNetwork(networkId, true)
+      reconnect()
+      result.success(true)
     }
 
   }
-
-  private fun wrapWithDoubleQuotes(text: String) = "\"$text\""
 }
+
+fun String.wrapWithDoubleQuotes(): String = "\"$this\""

@@ -59,6 +59,7 @@ build/
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/app.flx
 **/ios/Flutter/app.zip
+**/ios/Flutter/Flutter.podspec
 **/ios/Flutter/flutter_assets/
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
@@ -91,3 +92,6 @@ build/
 **/android/**/*.keystore
 **/android/**/.classpath
 **/android/**/.settings
+
+#Exmple
+example/.flutter-plugins-dependencies
