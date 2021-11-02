@@ -89,8 +89,8 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin {
       }
       disconnect()
       enableNetwork(networkId, true)
-      reconnect()
-      result.success(true)
+      val connectionResult = reconnect()
+      result.success(connectionResult)
     }
 
   }
