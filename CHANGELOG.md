@@ -9,3 +9,7 @@ Fix README, Add license
 ## 1.0.2
 
 Fix README for readability
+
+## 2.0.0
+
+Support null safety and iOS 12+
