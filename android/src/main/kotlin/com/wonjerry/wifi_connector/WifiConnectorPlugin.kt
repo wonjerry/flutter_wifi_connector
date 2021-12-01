@@ -91,7 +91,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin {
         return;
       }
       disconnect()
-      enableNetwork(network.networkId, attemptConnect = true)
+      enableNetwork(network.networkId, true)
       reconnect()
       result.success(true)
     }
