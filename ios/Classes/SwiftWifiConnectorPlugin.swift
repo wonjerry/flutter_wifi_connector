@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import NetworkExtension
 import SystemConfiguration.CaptiveNetwork
+import Foundation
 
 public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -46,7 +47,7 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     // 연결을 시도하고, 성공 여부를 callback으로 전달받는다.
     NEHotspotConfigurationManager.shared.apply(hotspotConfiguration) { (error) in
       guard let error = error else {
-        result(true)
+        result(self.getCurrentWiFiSsid() == ssid)
         return
       }
       let nsError = error as NSError
@@ -65,5 +66,18 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
         result(false)
       }
     }
+  }
+    
+  func getCurrentWiFiSsid() -> String? {
+    var ssid: String?
+    if let interfaces = CNCopySupportedInterfaces() as NSArray? {
+      for interface in interfaces {
+        if let interfaceInfo = CNCopyCurrentNetworkInfo(interface as! CFString) as NSDictionary? {
+          ssid = interfaceInfo[kCNNetworkInfoKeySSID as String] as? String
+          break
+        }
+      }
+    }
+    return ssid
   }
 }
