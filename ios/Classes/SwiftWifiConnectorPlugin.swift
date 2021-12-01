@@ -76,6 +76,6 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
         }
       }
     }
-    return null
+    return nil
   }
 }
