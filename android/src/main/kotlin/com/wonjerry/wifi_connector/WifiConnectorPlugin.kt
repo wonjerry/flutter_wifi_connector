@@ -82,13 +82,17 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin {
       }
 
       // 위에서 생성한 configration을 추가하고 해당 네트워크와 연결한다.
-      val networkId = addNetwork(wifiConfiguration)
-      if (networkId == null || networkId == -1) {
+      addNetwork(wifiConfiguration)
+      val network = configuredNetworks.find { network ->
+        println(network.SSID)
+        network.SSID == ssid.wrapWithDoubleQuotes()
+      }
+      if (network == null) {
         result.success(false)
         return;
       }
       disconnect()
-      enableNetwork(networkId, true)
+      enableNetwork(network.networkId, attemptConnect = true)
       reconnect()
       result.success(true)
     }
