@@ -24,7 +24,7 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     guard let argMaps = call.arguments as? Dictionary<String, Any>,
       let ssid = argMaps["ssid"] as? String,
       let isWEP = argMaps["isWEP"] as? Bool else {
-        result(FlutterError(code: call.method, message: "Missing argument: ssid", details: nil))
+        result(FlutterError(code: call.method, message: "Missing arguments", details: nil))
         return
     }
     

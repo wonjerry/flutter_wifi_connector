@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'package:wifi_connector/wifi_connector.dart';
@@ -13,6 +15,14 @@ class _MyAppState extends State<MyApp> {
   final _ssidController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '');
   var _isSucceed = false;
+  var _loading = false;
+  var _hasPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,28 +33,54 @@ class _MyAppState extends State<MyApp> {
         ),
         body: ListView(
           children: [
-            _buildTextInput(
-              'ssid',
-              _ssidController,
-            ),
-            _buildTextInput(
-              'password',
-              _passwordController,
+            Padding(
+              padding: const EdgeInsets.only(top: 24.0),
+              child: ElevatedButton(
+                child: Text(
+                  'Has Permission',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: _onHasPermissionClicked,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 24.0),
               child: ElevatedButton(
                 child: Text(
-                  'connect',
+                  'Open Permission screen',
                   style: TextStyle(color: Colors.white),
                 ),
-                onPressed: _onConnectPressed,
+                onPressed: _onRequestPermissionClicked,
               ),
             ),
             Text(
-              'Is wifi connected?: $_isSucceed',
+              'Has permission?: $_hasPermission',
               textAlign: TextAlign.center,
-            )
+            ),
+            if (_hasPermission) ...[
+              _buildTextInput(
+                'ssid',
+                _ssidController,
+              ),
+              _buildTextInput(
+                'password',
+                _passwordController,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 24.0),
+                child: ElevatedButton(
+                  child: Text(
+                    'connect',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: _onConnectPressed,
+                ),
+              ),
+              Text(
+                'Is wifi connected?: ${_loading ? '...' : _isSucceed}',
+                textAlign: TextAlign.center,
+              ),
+            ]
           ],
         ),
       ),
@@ -76,9 +112,26 @@ class _MyAppState extends State<MyApp> {
   Future<void> _onConnectPressed() async {
     final ssid = _ssidController.text;
     final password = _passwordController.text;
-    setState(() => _isSucceed = false);
-    final isSucceed =
-        await WifiConnector.connectToWifi(ssid: ssid, password: password);
-    setState(() => _isSucceed = isSucceed);
+    setState(() {
+      _isSucceed = false;
+      _loading = true;
+    });
+    final isSucceed = await WifiConnector.connectToWifi(ssid: ssid, password: password, securityType: SecurityType.WAP3);
+    setState(() {
+      _isSucceed = isSucceed;
+      _loading = false;
+    });
+  }
+
+  Future<void> _onHasPermissionClicked() => _checkPermission();
+
+  Future<void> _onRequestPermissionClicked() async {
+    final hasPermission = await WifiConnector.openPermissionsScreen();
+    setState(() => _hasPermission = hasPermission);
+  }
+
+  Future<void> _checkPermission() async {
+    final hasPermission = await WifiConnector.hasPermission();
+    setState(() => _hasPermission = hasPermission);
   }
 }
