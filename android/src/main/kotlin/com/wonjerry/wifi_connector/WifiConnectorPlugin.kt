@@ -87,7 +87,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
         else -> result.notImplemented()
       }
     } catch (e: Exception) {
-      result.error("500", e.message, e.stackTrace)
+      result.error("500", e.message, e.stackTraceToString())
     }
   }
 

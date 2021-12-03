@@ -116,11 +116,13 @@ class _MyAppState extends State<MyApp> {
       _isSucceed = false;
       _loading = true;
     });
-    final isSucceed = await WifiConnector.connectToWifi(ssid: ssid, password: password, securityType: SecurityType.WAP3);
-    setState(() {
+    try{
+      final isSucceed = await WifiConnector.connectToWifi(ssid: ssid, password: password, securityType: SecurityType.WAP3);
       _isSucceed = isSucceed;
-      _loading = false;
-    });
+    } catch(e, stack) {
+      print('Error: $e\n$e');
+    }
+    setState(() => _loading = false);
   }
 
   Future<void> _onHasPermissionClicked() => _checkPermission();
