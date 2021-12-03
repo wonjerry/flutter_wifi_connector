@@ -11,6 +11,9 @@ class WifiConnector {
   ///   Android: Supported WAP2/WAP3
   ///   iOS: Supported WAP2
   static Future<bool> connectToWifi({required String ssid, String? password, SecurityType securityType = SecurityType.NONE, bool internetRequired = true}) async {
+    if (password != null && securityType == SecurityType.NONE) {
+      throw ArgumentError('If you are using a password you should also set the correct securityType');
+    }
     final result = await _channel.invokeMethod<bool>('connectToWifi', {
       'ssid': ssid,
       'password': password,
