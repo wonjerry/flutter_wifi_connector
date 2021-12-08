@@ -116,21 +116,22 @@ class _MyAppState extends State<MyApp> {
       _isSucceed = false;
       _loading = true;
     });
-    try{
-      final isSucceed = await WifiConnector.connectToWifi(ssid: ssid, password: password, securityType: SecurityType.WAP3);
+    try {
+      final isSucceed = await WifiConnector.connectToWifi(
+        ssid: ssid,
+        password: password,
+        securityType: SecurityType.WAP2,
+      );
       _isSucceed = isSucceed;
-    } catch(e, stack) {
-      print('Error: $e\n$e');
+    } catch (e, stack) {
+      print('Error: $e\n$stack');
     }
     setState(() => _loading = false);
   }
 
   Future<void> _onHasPermissionClicked() => _checkPermission();
 
-  Future<void> _onRequestPermissionClicked() async {
-    final hasPermission = await WifiConnector.openPermissionsScreen();
-    setState(() => _hasPermission = hasPermission);
-  }
+  Future<void> _onRequestPermissionClicked() => WifiConnector.openPermissionsScreen();
 
   Future<void> _checkPermission() async {
     final hasPermission = await WifiConnector.hasPermission();

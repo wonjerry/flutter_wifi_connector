@@ -38,10 +38,9 @@ class WifiConnector {
   /// Open the permission screen
   /// Android only required Android 10+
   /// iOS will always return true because there is no permission needed & no screen will be opened
-  static Future<bool> openPermissionsScreen() async {
-    if (Platform.isIOS) return true;
+  static Future<void> openPermissionsScreen() async {
+    if (Platform.isIOS) return;
     await _channel.invokeMethod<bool>('openPermissionsScreen');
-    return hasPermission();
   }
 }
 

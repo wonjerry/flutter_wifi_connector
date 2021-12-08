@@ -12,11 +12,13 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSpecifier
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.provider.Settings.ACTION_WIFI_ADD_NETWORKS
 import android.provider.Settings.EXTRA_WIFI_NETWORK_LIST
@@ -31,11 +33,10 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import java.lang.Exception
+
 
 class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.ActivityResultListener, ActivityAware {
   companion object {
-    const val MANAGE_SETTINGS_RESULT_CODE = 1001
     const val ADD_WIFI_RESULT_CODE = 1002
     @JvmStatic
     fun registerWith(registrar: Registrar) {
@@ -51,6 +52,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   private var activity: Activity? = null
   private var networkCallback: ConnectivityManager.NetworkCallback? = null
   private var result: Result? =null
+  private var ssid: String? =null
   private var suggestion: WifiNetworkSuggestion? =null
   private val connectivityManager: ConnectivityManager by lazy(LazyThreadSafetyMode.NONE) {
     activityContext?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -93,10 +95,8 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
 
   private fun hasPermission(call: MethodCall, result: Result) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      if (Settings.System.canWrite(activityContext)) {
-        result.success(true)
-        return
-      }
+      result.success(Settings.System.canWrite(activityContext))
+      return
     }
     result.success(false)
   }
@@ -111,8 +111,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
       this.result = result
       val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
       intent.data = Uri.parse("package:" + context.packageName)
-      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-      activity?.startActivityForResult(intent, MANAGE_SETTINGS_RESULT_CODE)
+      activity?.startActivity(intent)
       return
     }
     result.success(true)
@@ -137,7 +136,6 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     }
   }
 
-
   @RequiresApi(Build.VERSION_CODES.Q)
   private fun connectToWifiPostQWithInternet(result: Result, ssid: String, password: String?, isWap2: Boolean, isWap3: Boolean) {
     val context = activityContext
@@ -156,25 +154,56 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
           }
         }
       }
+      .setIsAppInteractionRequired(true)
       .build()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       this.result = result
+      this.ssid = ssid
       this.suggestion = suggestion
       val intent = Intent(ACTION_WIFI_ADD_NETWORKS)
       intent.putExtra(EXTRA_WIFI_NETWORK_LIST, arrayListOf(suggestion))
-      intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
       activity?.startActivityForResult(intent, ADD_WIFI_RESULT_CODE)
       return
     }
-    connectToWifiPostQWithSuggestion(context, suggestion, result)
+    connectToWifiPostQWithSuggestion(context, suggestion, ssid, result)
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
-  private fun connectToWifiPostQWithSuggestion(context: Context, suggestion: WifiNetworkSuggestion, result: Result){
+  private fun connectToWifiPostQWithSuggestion(context: Context, suggestion: WifiNetworkSuggestion, ssid: String, result: Result){
+    val intentFilter = IntentFilter(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)
+    val broadcastReceiver = object : BroadcastReceiver() {
+      override fun onReceive(context: Context, intent: Intent) {
+        if (!intent.action.equals(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)) {
+          return
+        }
+        result.success(true)
+        context.unregisterReceiver(this)
+      }
+    }
+    context.registerReceiver(broadcastReceiver, intentFilter)
     val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
-    result.success(status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS)
+    if (status != WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+        result.success(false)
+        return
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun checkIfConnectedToSsid(result: Result, ssid: String) {
+    val context = activityContext ?: return
+    var isConnected = false
+    while (!isConnected) {
+      val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+      val connectedSsid =   wifiManager.connectionInfo.ssid
+      if (ssid == connectedSsid) {
+        Handler(context.mainLooper).post {
+          result.success(true)
+        }
+        isConnected = true
+      }
+    }
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
@@ -260,22 +289,22 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   }
 
   override fun onActivityResult(code: Int, resultCode: Int, data: Intent?): Boolean {
-    val result = result ?: return false;
-    val suggestion = suggestion ?: return false;
-    val context = activityContext ?: return false;
+    val context = activityContext ?: return false
+    val result = result ?: return false
+    val ssid = ssid ?: return false
+    val suggestion = suggestion ?: return false
     when (code) {
         ADD_WIFI_RESULT_CODE -> {
-          if (resultCode == Activity.RESULT_OK){
-            result.success(true)
+          println(resultCode)
+          if (resultCode != Activity.RESULT_OK) {
+            result.success(false)
+            return true
           }
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            connectToWifiPostQWithSuggestion(context, suggestion, result)
+            connectToWifiPostQWithSuggestion(context, suggestion, ssid, result)
           } else {
-            result.success(false)
+            checkIfConnectedToSsid(result,ssid)
           }
-        }
-        MANAGE_SETTINGS_RESULT_CODE -> {
-          result.success(resultCode == Activity.RESULT_OK)
         }
     }
     return true
