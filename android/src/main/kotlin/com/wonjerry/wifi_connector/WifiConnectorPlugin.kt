@@ -196,11 +196,9 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     var isConnected = false
     while (!isConnected) {
       val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-      val connectedSsid =   wifiManager.connectionInfo.ssid
-      if (ssid == connectedSsid) {
-        Handler(context.mainLooper).post {
-          result.success(true)
-        }
+      val connectedSsid = wifiManager.connectionInfo.ssid
+      if ("\"$ssid\"" == connectedSsid || ssid == connectedSsid) {
+        result.success(true)
         isConnected = true
       }
     }
@@ -295,7 +293,6 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     val suggestion = suggestion ?: return false
     when (code) {
         ADD_WIFI_RESULT_CODE -> {
-          println(resultCode)
           if (resultCode != Activity.RESULT_OK) {
             result.success(false)
             return true
