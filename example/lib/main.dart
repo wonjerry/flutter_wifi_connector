@@ -120,7 +120,7 @@ class _MyAppState extends State<MyApp> {
       final isSucceed = await WifiConnector.connectToWifi(
         ssid: ssid,
         password: password,
-        securityType: SecurityType.WAP2,
+        securityType: SecurityType.WPA2,
       );
       _isSucceed = isSucceed;
     } catch (e, stack) {

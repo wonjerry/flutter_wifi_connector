@@ -12,13 +12,11 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.net.wifi.WifiConfiguration
-import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSpecifier
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.provider.Settings.ACTION_WIFI_ADD_NETWORKS
 import android.provider.Settings.EXTRA_WIFI_NETWORK_LIST
@@ -121,15 +119,15 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     val argMap = call.arguments as Map<String, Any>
     val ssid = argMap["ssid"] as String
     val password = argMap["password"] as String?
-    val isWap2 = argMap["isWap2"] as Boolean
-    val isWap3 = argMap["isWap3"] as Boolean
+    val isWpa2 = argMap["isWpa2"] as Boolean
+    val isWpa3 = argMap["isWpa3"] as Boolean
     val internetRequired = argMap["internetRequired"] as Boolean
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       if (internetRequired) {
-        connectToWifiPostQWithInternet(result, ssid, password, isWap2, isWap3)
+        connectToWifiPostQWithInternet(result, ssid, password, isWpa2, isWpa3)
       } else {
-        connectToWifiPostQWithoutInternet(result, ssid, password, isWap2, isWap3)
+        connectToWifiPostQWithoutInternet(result, ssid, password, isWpa2, isWpa3)
       }
     } else {
       connectToWifiPreQ(result, ssid, password)
@@ -137,7 +135,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
-  private fun connectToWifiPostQWithInternet(result: Result, ssid: String, password: String?, isWap2: Boolean, isWap3: Boolean) {
+  private fun connectToWifiPostQWithInternet(result: Result, ssid: String, password: String?, isWpa2: Boolean, isWpa3: Boolean) {
     val context = activityContext
     if (context == null) {
       result.error("500", "Activity Context is null", "")
@@ -147,9 +145,9 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
       .setSsid(ssid)
       .apply {
         password?.let {
-          if (isWap2) {
+          if (isWpa2) {
             setWpa2Passphrase(it)
-          } else if(isWap3){
+          } else if(isWpa3){
             setWpa3Passphrase(it)
           }
         }
@@ -188,6 +186,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
         result.success(false)
         return
     }
+    checkIfConnectedToSsid(result, ssid)
   }
 
   @Suppress("DEPRECATION")
@@ -205,7 +204,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
-  private fun connectToWifiPostQWithoutInternet(result: Result, ssid: String, password: String?, isWap2: Boolean, isWap3: Boolean) {
+  private fun connectToWifiPostQWithoutInternet(result: Result, ssid: String, password: String?, isWpa2: Boolean, isWpa3: Boolean) {
     val context = activityContext
     if (context == null) {
       result.error("500", "Activity Context is null", "")
@@ -215,9 +214,9 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
       .setSsid(ssid)
       .apply {
         if (password != null) {
-          if (isWap2) {
+          if (isWpa2) {
             setWpa2Passphrase(password)
-          } else if (isWap3) {
+          } else if (isWpa3) {
             setWpa3Passphrase(password)
           }
         }
@@ -233,7 +232,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     networkCallback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
         connectivityManager.bindProcessToNetwork(network)
-        result.success(true)
+        checkIfConnectedToSsid(result, ssid)
         // cannot unregister callback here since it would disconnect form the network
       }
 

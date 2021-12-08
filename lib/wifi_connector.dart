@@ -8,8 +8,8 @@ class WifiConnector {
 
   /// Connect to wifi with the native platform api's
   /// Security type
-  ///   Android: Supported WAP2/WAP3
-  ///   iOS: Supported WAP2
+  ///   Android: Supported WPA2/WPA3
+  ///   iOS: Supported WPA2
   static Future<bool> connectToWifi({required String ssid, String? password, SecurityType securityType = SecurityType.NONE, bool internetRequired = true}) async {
     if (password != null && securityType == SecurityType.NONE) {
       throw ArgumentError('If you are using a password you should also set the correct securityType');
@@ -18,8 +18,8 @@ class WifiConnector {
       'ssid': ssid,
       'password': password,
       'isWEP': securityType == SecurityType.WEP,
-      'isWap2': securityType == SecurityType.WAP2,
-      'isWap3': securityType == SecurityType.WAP3,
+      'isWpa2': securityType == SecurityType.WPA2,
+      'isWpa3': securityType == SecurityType.WPA3,
       'internetRequired': internetRequired,
     });
     print('RESULT: $result');
@@ -47,6 +47,6 @@ class WifiConnector {
 enum SecurityType {
   NONE,
   WEP,
-  WAP2,
-  WAP3,
+  WPA2,
+  WPA3,
 }
