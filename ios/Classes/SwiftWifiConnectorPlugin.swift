@@ -23,14 +23,14 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     // Flutter 쪽에서 arguments로 map을 보낸 것을 이렇게 Dictionary로 parsing해서 사용한다.
     guard let argMaps = call.arguments as? Dictionary<String, Any>,
       let ssid = argMaps["ssid"] as? String,
-      let isWEP = argMaps["isWEP"] as? Bool else {
+      let isWEP = argMaps["isWep"] as? Bool else {
         result(FlutterError(code: call.method, message: "Missing arguments", details: nil))
         return
     }
     
     var hotspotConfiguration: NEHotspotConfiguration
     
-    if isWEP {
+    if isWep {
       result(FlutterError(code: call.method, message: "WEP is not supported", details: nil))
       return
     }

@@ -17,7 +17,7 @@ class WifiConnector {
     final result = await _channel.invokeMethod<bool>('connectToWifi', {
       'ssid': ssid,
       'password': password,
-      'isWEP': securityType == SecurityType.WEP,
+      'isWep': securityType == SecurityType.WEP,
       'isWpa2': securityType == SecurityType.WPA2,
       'isWpa3': securityType == SecurityType.WPA3,
       'internetRequired': internetRequired,
