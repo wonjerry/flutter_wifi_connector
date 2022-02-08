@@ -20,7 +20,6 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
   }
   
   private func connectToWifi(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-    // Flutter 쪽에서 arguments로 map을 보낸 것을 이렇게 Dictionary로 parsing해서 사용한다.
     guard let argMaps = call.arguments as? Dictionary<String, Any>,
       let ssid = argMaps["ssid"] as? String,
       let isWep = argMaps["isWep"] as? Bool else {
@@ -29,21 +28,14 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     }
     
     var hotspotConfiguration: NEHotspotConfiguration
-    
-    if isWep {
-      result(FlutterError(code: call.method, message: "WEP is not supported", details: nil))
-      return
-    }
-    
     if let password = argMaps["password"] as? String {
-      hotspotConfiguration = NEHotspotConfiguration(ssid: ssid, passphrase: password, isWEP: false)
+      hotspotConfiguration = NEHotspotConfiguration(ssid: ssid, passphrase: password, isWEP: isWep)
     } else {
       hotspotConfiguration = NEHotspotConfiguration(ssid: ssid)
     }
     
     hotspotConfiguration.lifeTimeInDays = 1
     
-    // 연결을 시도하고, 성공 여부를 callback으로 전달받는다.
     NEHotspotConfigurationManager.shared.apply(hotspotConfiguration) { (error) in
       guard let error = error else {
         result(true)

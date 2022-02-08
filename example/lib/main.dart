@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:wifi_connector/wifi_connector.dart';
 
@@ -14,6 +16,8 @@ class _MyAppState extends State<MyApp> {
   var _isSucceed = false;
   var _loading = false;
   var _hasPermission = false;
+  var _securityType = SecurityType.WPA2;
+  var _internetRequired = true;
 
   @override
   void initState() {
@@ -63,6 +67,26 @@ class _MyAppState extends State<MyApp> {
                 'password',
                 _passwordController,
               ),
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  title: Text('Internet Required'),
+                  value: _internetRequired,
+                  onChanged: (value) {
+                    setState(() {
+                      _internetRequired = value;
+                    });
+                  },
+                ),
+              for (final item in SecurityType.values)
+                ListTile(
+                  title: Text(item.toString()),
+                  onTap: () => _onSecurityTypeChanged(item),
+                  leading: Radio<SecurityType>(
+                    value: item,
+                    groupValue: _securityType,
+                    onChanged: (value) => _onSecurityTypeChanged(item),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.only(top: 24.0),
                 child: ElevatedButton(
@@ -70,17 +94,7 @@ class _MyAppState extends State<MyApp> {
                     'connect',
                     style: TextStyle(color: Colors.white),
                   ),
-                  onPressed: () => _onConnectPressed(internetRequired: true),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 24.0),
-                child: ElevatedButton(
-                  child: Text(
-                    'connect without internet',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  onPressed: () => _onConnectPressed(internetRequired: false),
+                  onPressed: _onConnectPressed,
                 ),
               ),
               Text(
@@ -116,7 +130,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Future<void> _onConnectPressed({required bool internetRequired}) async {
+  Future<void> _onConnectPressed() async {
     final ssid = _ssidController.text;
     final password = _passwordController.text;
     setState(() {
@@ -127,8 +141,8 @@ class _MyAppState extends State<MyApp> {
       final isSucceed = await WifiConnector.connectToWifi(
         ssid: ssid,
         password: password,
-        internetRequired: internetRequired,
-        securityType: SecurityType.WPA2,
+        internetRequired: _internetRequired,
+        securityType: _securityType,
       );
       _isSucceed = isSucceed;
     } catch (e, stack) {
@@ -146,5 +160,11 @@ class _MyAppState extends State<MyApp> {
   Future<void> _checkPermission() async {
     final hasPermission = await WifiConnector.hasPermission();
     setState(() => _hasPermission = hasPermission);
+  }
+
+  void _onSecurityTypeChanged(SecurityType item) {
+    setState(() {
+      _securityType = item;
+    });
   }
 }
