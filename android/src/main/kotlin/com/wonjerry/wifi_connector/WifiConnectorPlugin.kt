@@ -49,9 +49,9 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   private var binding: ActivityPluginBinding? = null
   private var activity: Activity? = null
   private var networkCallback: ConnectivityManager.NetworkCallback? = null
-  private var result: Result? =null
-  private var ssid: String? =null
-  private var suggestion: WifiNetworkSuggestion? =null
+  private var result: Result? = null
+  private var ssid: String? = null
+  private var suggestion: WifiNetworkSuggestion? = null
   private val connectivityManager: ConnectivityManager by lazy(LazyThreadSafetyMode.NONE) {
     activityContext?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
   }
@@ -96,7 +96,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
       result.success(Settings.System.canWrite(activityContext))
       return
     }
-    result.success(false)
+    result.success(true)
   }
 
   private fun openPermissionsScreen(call: MethodCall, result: Result) {
@@ -123,14 +123,14 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
     val isWpa3 = argMap["isWpa3"] as Boolean
     val internetRequired = argMap["internetRequired"] as Boolean
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      if (internetRequired) {
-        connectToWifiPostQWithInternet(result, ssid, password, isWpa2, isWpa3)
-      } else {
-        connectToWifiPostQWithoutInternet(result, ssid, password, isWpa2, isWpa3)
-      }
-    } else {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
       connectToWifiPreQ(result, ssid, password)
+      return
+    }
+    if (internetRequired) {
+      connectToWifiPostQWithInternet(result, ssid, password, isWpa2, isWpa3)
+    } else {
+      connectToWifiPostQWithoutInternet(result, ssid, password, isWpa2, isWpa3)
     }
   }
 
@@ -168,42 +168,6 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
   }
 
   @RequiresApi(Build.VERSION_CODES.Q)
-  private fun connectToWifiPostQWithSuggestion(context: Context, suggestion: WifiNetworkSuggestion, ssid: String, result: Result){
-    val intentFilter = IntentFilter(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)
-    val broadcastReceiver = object : BroadcastReceiver() {
-      override fun onReceive(context: Context, intent: Intent) {
-        if (!intent.action.equals(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)) {
-          return
-        }
-        result.success(true)
-        context.unregisterReceiver(this)
-      }
-    }
-    context.registerReceiver(broadcastReceiver, intentFilter)
-    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
-    if (status != WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
-        result.success(false)
-        return
-    }
-    checkIfConnectedToSsid(result, ssid)
-  }
-
-  @Suppress("DEPRECATION")
-  private fun checkIfConnectedToSsid(result: Result, ssid: String) {
-    val context = activityContext ?: return
-    var isConnected = false
-    while (!isConnected) {
-      val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-      val connectedSsid = wifiManager.connectionInfo.ssid
-      if ("\"$ssid\"" == connectedSsid || ssid == connectedSsid) {
-        result.success(true)
-        isConnected = true
-      }
-    }
-  }
-
-  @RequiresApi(Build.VERSION_CODES.Q)
   private fun connectToWifiPostQWithoutInternet(result: Result, ssid: String, password: String?, isWpa2: Boolean, isWpa3: Boolean) {
     val context = activityContext
     if (context == null) {
@@ -231,12 +195,14 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
 
     networkCallback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
+        super.onAvailable(network)
         connectivityManager.bindProcessToNetwork(network)
-        checkIfConnectedToSsid(result, ssid)
+        result.success(true)
         // cannot unregister callback here since it would disconnect form the network
       }
 
       override fun onUnavailable() {
+        super.onUnavailable()
         result.success(false)
         connectivityManager.unregisterNetworkCallback(this)
         networkCallback = null
@@ -245,6 +211,28 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
 
     val handler = Handler(context.mainLooper)
     connectivityManager.requestNetwork(request, networkCallback!!, handler)
+  }
+
+  @RequiresApi(Build.VERSION_CODES.Q)
+  private fun connectToWifiPostQWithSuggestion(context: Context, suggestion: WifiNetworkSuggestion, ssid: String, result: Result){
+    val intentFilter = IntentFilter(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)
+    val broadcastReceiver = object : BroadcastReceiver() {
+      override fun onReceive(context: Context, intent: Intent) {
+        if (!intent.action.equals(WifiManager.ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION)) {
+          return
+        }
+        result.success(true)
+        context.unregisterReceiver(this)
+      }
+    }
+    context.registerReceiver(broadcastReceiver, intentFilter)
+    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
+    if (status != WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+        result.success(false)
+        return
+    }
+    result.success(true)
   }
 
   @SuppressLint("MissingPermission")
@@ -299,7 +287,7 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, PluginRegistry.Act
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             connectToWifiPostQWithSuggestion(context, suggestion, ssid, result)
           } else {
-            checkIfConnectedToSsid(result,ssid)
+            result.success(true)
           }
         }
     }

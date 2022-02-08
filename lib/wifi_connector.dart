@@ -22,7 +22,6 @@ class WifiConnector {
       'isWpa3': securityType == SecurityType.WPA3,
       'internetRequired': internetRequired,
     });
-    print('RESULT: $result');
     return result == true;
   }
 

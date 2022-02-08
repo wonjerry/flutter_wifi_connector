@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-
 import 'package:wifi_connector/wifi_connector.dart';
 
 void main() => runApp(MyApp());
@@ -73,7 +70,17 @@ class _MyAppState extends State<MyApp> {
                     'connect',
                     style: TextStyle(color: Colors.white),
                   ),
-                  onPressed: _onConnectPressed,
+                  onPressed: () => _onConnectPressed(internetRequired: true),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 24.0),
+                child: ElevatedButton(
+                  child: Text(
+                    'connect without internet',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: () => _onConnectPressed(internetRequired: false),
                 ),
               ),
               Text(
@@ -109,7 +116,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Future<void> _onConnectPressed() async {
+  Future<void> _onConnectPressed({required bool internetRequired}) async {
     final ssid = _ssidController.text;
     final password = _passwordController.text;
     setState(() {
@@ -120,13 +127,16 @@ class _MyAppState extends State<MyApp> {
       final isSucceed = await WifiConnector.connectToWifi(
         ssid: ssid,
         password: password,
+        internetRequired: internetRequired,
         securityType: SecurityType.WPA2,
       );
       _isSucceed = isSucceed;
     } catch (e, stack) {
       print('Error: $e\n$stack');
     }
-    setState(() => _loading = false);
+    setState(() {
+      _loading = false;
+    });
   }
 
   Future<void> _onHasPermissionClicked() => _checkPermission();
