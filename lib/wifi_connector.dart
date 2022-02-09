@@ -10,11 +10,7 @@ class WifiConnector {
   /// Security type
   ///   Android: Supported WPA2/WPA3
   ///   iOS: Supported WEP/WPA2
-  /// internetRequired: true
-  ///   Android: This will use the `peer-to-peer` API. You will not see that you are connected to an other network. but you can configure your device with this API.
-  ///            Mostly used for IOT device setup. Chomecast/IOT/Router/Gateway/...
-  ///   iOS: Will use the same API when set to true or false. (connect to wifi network with internet connectivity if possible)
-  static Future<bool> connectToWifi({required String ssid, String? password, SecurityType securityType = SecurityType.NONE, bool internetRequired = true}) async {
+  static Future<bool> connectToWifi({required String ssid, String? password, SecurityType securityType = SecurityType.NONE}) async {
     if (password != null && securityType == SecurityType.NONE) {
       throw ArgumentError('If you are using a password you should also set the correct securityType');
     }
@@ -24,9 +20,41 @@ class WifiConnector {
       'isWep': securityType == SecurityType.WEP,
       'isWpa2': securityType == SecurityType.WPA2,
       'isWpa3': securityType == SecurityType.WPA3,
-      'internetRequired': internetRequired,
     });
     return result == true;
+  }
+
+  /// Connect to wifi with the native platform api's
+  ///   Android: This will use the `peer-to-peer` API. You will not see that you are connected to an other network. but you can configure your device with this API.
+  ///            Mostly used for IOT device setup. Chomecast/IOT/Router/Gateway/...
+  ///            You will not see this in you OS settings. only the app that did the connect process will have a connection to the wifi network.
+  ///            You will not have internet connectivity.
+  ///   iOS: This is not supported by iOS so this will be a no-op (return always false)
+  /// Security type
+  ///   Android: Supported WPA2/WPA3
+  ///   iOS: Supported WEP/WPA2
+  /// internetRequired: true
+  static Future<bool> connectToPeerToPeerWifi({required String ssid, String? password, SecurityType securityType = SecurityType.NONE}) async {
+    if (!Platform.isAndroid) return false;
+    if (password != null && securityType == SecurityType.NONE) {
+      throw ArgumentError('If you are using a password you should also set the correct securityType');
+    }
+    final result = await _channel.invokeMethod<bool>('connectToPeerToPeerWifi', {
+      'ssid': ssid,
+      'password': password,
+      'isWep': securityType == SecurityType.WEP,
+      'isWpa2': securityType == SecurityType.WPA2,
+      'isWpa3': securityType == SecurityType.WPA3,
+    });
+    return result == true;
+  }
+
+  /// Open the permission screen
+  /// Android only required for Android 10+. This will clean up a still active connection that was started with `internetRequired = false`
+  /// iOS will be a no-op
+  static Future<void> disconnectPeerToPeerConnection() async {
+    if (Platform.isIOS) return;
+    await _channel.invokeMethod<bool>('disconnectPeerToPeerConnection');
   }
 
   /// Check if your app already has permission to update the wifi settings

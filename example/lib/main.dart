@@ -14,10 +14,11 @@ class _MyAppState extends State<MyApp> {
   final _ssidController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '');
   var _isSucceed = false;
+  var _shouldDisconnect = false;
   var _loading = false;
   var _hasPermission = false;
   var _securityType = SecurityType.WPA2;
-  var _internetRequired = true;
+  var _usePeerToPeerConnection = false;
 
   @override
   void initState() {
@@ -69,11 +70,11 @@ class _MyAppState extends State<MyApp> {
               ),
               if (Platform.isAndroid)
                 SwitchListTile(
-                  title: Text('Internet Required'),
-                  value: _internetRequired,
+                  title: Text('Use PeerToPeer API'),
+                  value: _usePeerToPeerConnection,
                   onChanged: (value) {
                     setState(() {
-                      _internetRequired = value;
+                      _usePeerToPeerConnection = value;
                     });
                   },
                 ),
@@ -97,6 +98,18 @@ class _MyAppState extends State<MyApp> {
                   onPressed: _onConnectPressed,
                 ),
               ),
+              if (_shouldDisconnect) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 24.0),
+                  child: ElevatedButton(
+                    child: Text(
+                      'disconnect',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: _onDisconnectClicked,
+                  ),
+                ),
+              ],
               Text(
                 'Is wifi connected?: ${_loading ? '...' : _isSucceed}',
                 textAlign: TextAlign.center,
@@ -138,18 +151,37 @@ class _MyAppState extends State<MyApp> {
       _loading = true;
     });
     try {
-      final isSucceed = await WifiConnector.connectToWifi(
-        ssid: ssid,
-        password: password,
-        internetRequired: _internetRequired,
-        securityType: _securityType,
-      );
+      bool isSucceed;
+      if (_usePeerToPeerConnection) {
+        await WifiConnector.disconnectPeerToPeerConnection();
+        await Future.delayed(Duration(seconds: 1));
+        isSucceed = await WifiConnector.connectToPeerToPeerWifi(
+          ssid: ssid,
+          password: password,
+          securityType: _securityType,
+        );
+      } else {
+        isSucceed = await WifiConnector.connectToWifi(
+          ssid: ssid,
+          password: password,
+          securityType: _securityType,
+        );
+      }
+      _shouldDisconnect = isSucceed && _usePeerToPeerConnection;
       _isSucceed = isSucceed;
     } catch (e, stack) {
       print('Error: $e\n$stack');
     }
     setState(() {
       _loading = false;
+    });
+  }
+
+  Future<void> _onDisconnectClicked() async {
+    await WifiConnector.disconnectPeerToPeerConnection();
+    setState(() {
+      _shouldDisconnect = false;
+      _isSucceed = false;
     });
   }
 

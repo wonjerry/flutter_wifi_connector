@@ -70,6 +70,8 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
       when (call.method) {
         "hasPermission" -> hasPermission(result)
         "openPermissionsScreen" -> openPermissionsScreen(result)
+        "disconnectPeerToPeerConnection" -> disconnectPeerToPeerConnection(result)
+        "connectToPeerToPeerWifi" -> connectToPeerToPeerWifi(call, result)
         "connectToWifi" -> connectToWifi(call, result)
         else -> result.notImplemented()
       }
@@ -101,15 +103,26 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
     activity?.startActivity(intent)
   }
 
+  private fun disconnectPeerToPeerConnection(result: Result) {
+    networkCallback?.let { cleanupNetworkCallback(it) }
+    result.success(true)
+  }
+
   private fun connectToWifi(call: MethodCall, result: Result) {
+    val argMap = call.arguments as Map<*, *>
+    val ssid = argMap["ssid"] as String
+    val password = argMap["password"] as String?
+    connectToWifiPreQ(result, ssid, password)
+  }
+
+  private fun connectToPeerToPeerWifi(call: MethodCall, result: Result) {
     val argMap = call.arguments as Map<*, *>
     val ssid = argMap["ssid"] as String
     val password = argMap["password"] as String?
     val isWpa2 = argMap["isWpa2"] as Boolean
     val isWpa3 = argMap["isWpa3"] as Boolean
-    val internetRequired = argMap["internetRequired"] as Boolean
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || internetRequired) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
       connectToWifiPreQ(result, ssid, password)
       return
     }
@@ -121,6 +134,10 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
     val context = activityContext
     if (context == null) {
       result.error("500", "Activity Context is null", "")
+      return
+    }
+    if (networkCallback != null) {
+      result.error("500", "Still connected", "First disconnect")
       return
     }
     val specifier = WifiNetworkSpecifier.Builder()
@@ -135,7 +152,6 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
         }
       }
       .build()
-    networkCallback?.let { cleanupNetworkCallback(it) }
     val request = NetworkRequest.Builder()
       .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
       .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -143,12 +159,14 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
       .build()
     val networkCallback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
+        super.onAvailable(network)
         connectivityManager.bindProcessToNetwork(network)
         result.success(true)
         // cannot unregister callback here since it would disconnect from the network
       }
 
       override fun onUnavailable() {
+        super.onUnavailable()
         result.success(false)
         cleanupNetworkCallback(this)
       }
