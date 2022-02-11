@@ -4,6 +4,18 @@ import NetworkExtension
 import SystemConfiguration.CaptiveNetwork
 
 public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
+        
+  var currentWifiSSD: String? {
+    if let interfaces = CNCopySupportedInterfaces() as NSArray? {
+      for interface in interfaces {
+        if let interfaceInfo = CNCopyCurrentNetworkInfo(interface as! CFString) as NSDictionary? {
+          return interfaceInfo[kCNNetworkInfoKeySSID as String] as? String
+        }
+      }
+    }
+    return nil
+  }
+    
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "wifi_connector", binaryMessenger: registrar.messenger())
     let instance = SwiftWifiConnectorPlugin()
@@ -46,7 +58,7 @@ public class SwiftWifiConnectorPlugin: NSObject, FlutterPlugin {
     // 연결을 시도하고, 성공 여부를 callback으로 전달받는다.
     NEHotspotConfigurationManager.shared.apply(hotspotConfiguration) { (error) in
       guard let error = error else {
-        result(true)
+        result(self.currentWifiSSD == ssid)
         return
       }
       let nsError = error as NSError
