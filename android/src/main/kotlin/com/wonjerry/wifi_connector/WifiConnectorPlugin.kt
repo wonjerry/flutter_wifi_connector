@@ -158,17 +158,23 @@ class WifiConnectorPlugin : MethodCallHandler, FlutterPlugin, ActivityAware {
       .setNetworkSpecifier(specifier)
       .build()
     val networkCallback = object : ConnectivityManager.NetworkCallback() {
+      var resultSent = false
+
       override fun onAvailable(network: Network) {
         super.onAvailable(network)
         connectivityManager.bindProcessToNetwork(network)
+        if (resultSent) return
         result.success(true)
+        resultSent = true
         // cannot unregister callback here since it would disconnect from the network
       }
 
       override fun onUnavailable() {
         super.onUnavailable()
-        result.success(false)
         cleanupNetworkCallback(this)
+        if (resultSent) return
+        resultSent = true
+        result.success(false)
       }
     }
     val handler = Handler(context.mainLooper)
