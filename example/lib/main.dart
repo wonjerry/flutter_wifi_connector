@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:wifi_connector/wifi_connector.dart';
 
 void main() => runApp(MyApp());
@@ -13,6 +14,17 @@ class _MyAppState extends State<MyApp> {
   final _ssidController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: '');
   var _isSucceed = false;
+  var _shouldDisconnect = false;
+  var _loading = false;
+  var _hasPermission = false;
+  var _securityType = SecurityType.WPA2;
+  var _usePeerToPeerConnection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,28 +35,86 @@ class _MyAppState extends State<MyApp> {
         ),
         body: ListView(
           children: [
-            _buildTextInput(
-              'ssid',
-              _ssidController,
-            ),
-            _buildTextInput(
-              'password',
-              _passwordController,
+            Padding(
+              padding: const EdgeInsets.only(top: 24.0),
+              child: ElevatedButton(
+                child: Text(
+                  'Has Permission',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onPressed: _onHasPermissionClicked,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 24.0),
               child: ElevatedButton(
                 child: Text(
-                  'connect',
+                  'Open Permission screen',
                   style: TextStyle(color: Colors.white),
                 ),
-                onPressed: _onConnectPressed,
+                onPressed: _onRequestPermissionClicked,
               ),
             ),
             Text(
-              'Is wifi connected?: $_isSucceed',
+              'Has permission?: $_hasPermission',
               textAlign: TextAlign.center,
-            )
+            ),
+            if (_hasPermission) ...[
+              _buildTextInput(
+                'ssid',
+                _ssidController,
+              ),
+              _buildTextInput(
+                'password',
+                _passwordController,
+              ),
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  title: Text('Use PeerToPeer API'),
+                  value: _usePeerToPeerConnection,
+                  onChanged: (value) {
+                    setState(() {
+                      _usePeerToPeerConnection = value;
+                    });
+                  },
+                ),
+              for (final item in SecurityType.values)
+                ListTile(
+                  title: Text(item.toString()),
+                  onTap: () => _onSecurityTypeChanged(item),
+                  leading: Radio<SecurityType>(
+                    value: item,
+                    groupValue: _securityType,
+                    onChanged: (value) => _onSecurityTypeChanged(item),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 24.0),
+                child: ElevatedButton(
+                  child: Text(
+                    'connect',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: _onConnectPressed,
+                ),
+              ),
+              if (_shouldDisconnect) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 24.0),
+                  child: ElevatedButton(
+                    child: Text(
+                      'disconnect',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: _onDisconnectClicked,
+                  ),
+                ),
+              ],
+              Text(
+                'Is wifi connected?: ${_loading ? '...' : _isSucceed}',
+                textAlign: TextAlign.center,
+              ),
+            ]
           ],
         ),
       ),
@@ -76,9 +146,57 @@ class _MyAppState extends State<MyApp> {
   Future<void> _onConnectPressed() async {
     final ssid = _ssidController.text;
     final password = _passwordController.text;
-    setState(() => _isSucceed = false);
-    final isSucceed =
-        await WifiConnector.connectToWifi(ssid: ssid, password: password);
-    setState(() => _isSucceed = isSucceed);
+    setState(() {
+      _isSucceed = false;
+      _loading = true;
+    });
+    try {
+      bool isSucceed;
+      if (_usePeerToPeerConnection) {
+        await WifiConnector.disconnectPeerToPeerConnection();
+        await Future.delayed(Duration(seconds: 1));
+        isSucceed = await WifiConnector.connectToPeerToPeerWifi(
+          ssid: ssid,
+          password: password,
+          securityType: _securityType,
+        );
+      } else {
+        isSucceed = await WifiConnector.connectToWifi(
+          ssid: ssid,
+          password: password,
+          securityType: _securityType,
+        );
+      }
+      _shouldDisconnect = isSucceed && _usePeerToPeerConnection;
+      _isSucceed = isSucceed;
+    } catch (e, stack) {
+      print('Error: $e\n$stack');
+    }
+    setState(() {
+      _loading = false;
+    });
+  }
+
+  Future<void> _onDisconnectClicked() async {
+    await WifiConnector.disconnectPeerToPeerConnection();
+    setState(() {
+      _shouldDisconnect = false;
+      _isSucceed = false;
+    });
+  }
+
+  Future<void> _onHasPermissionClicked() => _checkPermission();
+
+  Future<void> _onRequestPermissionClicked() => WifiConnector.openPermissionsScreen();
+
+  Future<void> _checkPermission() async {
+    final hasPermission = await WifiConnector.hasPermission();
+    setState(() => _hasPermission = hasPermission);
+  }
+
+  void _onSecurityTypeChanged(SecurityType item) {
+    setState(() {
+      _securityType = item;
+    });
   }
 }
