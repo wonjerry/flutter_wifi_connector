@@ -18,7 +18,9 @@ void main() {
   test('getPlatformVersion', () async {
     expect(
         await WifiConnector.connectToWifi(
-            ssid: 'myssid', password: 'mypassword'),
+          ssid: 'myssid',
+          password: 'mypassword',
+        ),
         true);
   });
 }
